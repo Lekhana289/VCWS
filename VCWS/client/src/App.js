@@ -9,9 +9,6 @@ function App() {
   const [nickname, setNickname] = useState('');
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([]);
-  const [points, setPoints] = useState(0);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [badges, setBadges] = useState([]);
   const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
 
@@ -25,27 +22,7 @@ function App() {
     });
 
     socket.on('roomMessage', (data) => {
-      if (typeof data === 'object') {
-        setChat((prevChat) => [
-          ...prevChat,
-          `${data.nickname || 'User'}: ${data.message || '[No message]'}`,
-        ]);
-      } else {
-        setChat((prevChat) => [...prevChat, data]);
-      }
-    });
-
-    socket.on('updatePoints', (newPoints) => {
-      setPoints(newPoints);
-    });
-
-    socket.on('leaderboard', (data) => {
-      setLeaderboard(data);
-    });
-
-    socket.on('awardBadge', (badge) => {
-      console.log('Badge received:', badge);
-      setBadges((prevBadges) => [...prevBadges, badge]);
+      setChat((prevChat) => [...prevChat, data]);
     });
 
     socket.on('updateUsers', (userList) => {
@@ -56,9 +33,6 @@ function App() {
       socket.off('connect');
       socket.off('disconnect');
       socket.off('roomMessage');
-      socket.off('updatePoints');
-      socket.off('leaderboard');
-      socket.off('awardBadge');
       socket.off('updateUsers');
     };
   }, []);
@@ -80,10 +54,6 @@ function App() {
     } else {
       setError('Message cannot be empty.');
     }
-  };
-
-  const fetchLeaderboard = () => {
-    socket.emit('getLeaderboard');
   };
 
   return (
@@ -125,29 +95,6 @@ function App() {
         <ul>
           {users.map((user, index) => (
             <li key={index}>{user}</li>
-          ))}
-        </ul>
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2>Points</h2>
-        <p>{points} points</p>
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2>Leaderboard</h2>
-        <button onClick={fetchLeaderboard}>Refresh Leaderboard</button>
-        <ul>
-          {leaderboard.map((user, index) => (
-            <li key={index}>
-              {user.nickname}: {user.points} points
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2>Badges</h2>
-        <ul>
-          {badges.map((badge, index) => (
-            <li key={index}>{badge}</li>
           ))}
         </ul>
       </div>

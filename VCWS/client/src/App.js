@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
 // WebSocket URL pointing to the Render backend
-const socket = io('https://vcws-backend.onrender.com');
+const socket = io('https://vcws-backend.onrender.com', {
+  transports: ['websocket', 'polling'], // Ensure fallback options for WebSocket connection
+});
 
 function App() {
   const [room, setRoom] = useState('');
@@ -13,27 +15,40 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Connection success
     socket.on('connect', () => {
       console.log('Connected to WebSocket server with ID:', socket.id);
     });
 
+    // Disconnection event
     socket.on('disconnect', () => {
       console.log('Disconnected from WebSocket server');
     });
 
+    // Listen for messages in the room
     socket.on('roomMessage', (data) => {
       setChat((prevChat) => [...prevChat, data]);
     });
 
+    // Listen for updated user lists
     socket.on('updateUsers', (userList) => {
+      console.log('Updated Users:', userList);
       setUsers(userList);
     });
 
+    // Error listener for debugging
+    socket.on('connect_error', (err) => {
+      console.error('Connection Error:', err.message);
+      setError('Unable to connect to the server.');
+    });
+
     return () => {
+      // Cleanup listeners on unmount
       socket.off('connect');
       socket.off('disconnect');
       socket.off('roomMessage');
       socket.off('updateUsers');
+      socket.off('connect_error');
     };
   }, []);
 
@@ -86,17 +101,23 @@ function App() {
       </div>
       <div style={{ marginTop: '20px' }}>
         <h2>Messages</h2>
-        {chat.map((msg, index) => (
-          <p key={index}>{msg}</p>
-        ))}
+        {chat.length > 0 ? (
+          chat.map((msg, index) => <p key={index}>{msg}</p>)
+        ) : (
+          <p>No messages yet</p>
+        )}
       </div>
       <div style={{ marginTop: '20px' }}>
         <h2>Users in Room</h2>
-        <ul>
-          {users.map((user, index) => (
-            <li key={index}>{user}</li>
-          ))}
-        </ul>
+        {users.length > 0 ? (
+          <ul>
+            {users.map((user, index) => (
+              <li key={index}>{user}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>No users in the room</p>
+        )}
       </div>
     </div>
   );

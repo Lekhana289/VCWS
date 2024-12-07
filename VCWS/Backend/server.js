@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors({
-  origin: 'https://vcws-frontend-puaao639g.vercel.app', // Updated Frontend URL
+  origin: 'https://vcws-frontend-qlli7jd8g-lekhanas-projects-0722a45e.vercel.app/', // Updated Frontend URL
   methods: ['GET', 'POST'],
   credentials: true,
 }));
@@ -13,7 +13,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://vcws-frontend-puaao639g.vercel.app', // Updated Frontend URL
+    origin: 'https://vcws-frontend-qlli7jd8g-lekhanas-projects-0722a45e.vercel.app/', // Updated Frontend URL
     methods: ['GET', 'POST'],
   },
 });

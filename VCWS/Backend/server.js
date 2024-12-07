@@ -5,7 +5,7 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors({
-  origin: 'https://vcws-frontend-dl31bd34u-lekhanas-projects-0722a45e.vercel.app', // Frontend URL
+  origin: 'https://vcws-frontend-puaao639g.vercel.app', // Updated Frontend URL
   methods: ['GET', 'POST'],
   credentials: true,
 }));
@@ -13,12 +13,12 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'https://vcws-frontend-dl31bd34u-lekhanas-projects-0722a45e.vercel.app', // Frontend URL
+    origin: 'https://vcws-frontend-puaao639g.vercel.app', // Updated Frontend URL
     methods: ['GET', 'POST'],
   },
 });
 
-const roomUsers = {}; // { room: [nicknames] }
+const roomUsers = {}; // { room: [{ socketId, nickname }] }
 
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
@@ -27,26 +27,26 @@ io.on('connection', (socket) => {
     if (room && nickname) {
       socket.join(room);
       if (!roomUsers[room]) roomUsers[room] = [];
-      roomUsers[room].push(nickname);
+      roomUsers[room].push({ socketId: socket.id, nickname });
 
       console.log(`User ${nickname} joined room: ${room}`);
       io.to(room).emit('roomMessage', `${nickname} has joined the room ${room}`);
-      io.to(room).emit('updateUsers', roomUsers[room]);
+      io.to(room).emit('updateUsers', roomUsers[room].map((user) => user.nickname));
     }
   });
 
-  socket.on('sendMessage', ({ room, message }) => {
+  socket.on('sendMessage', ({ room, nickname, message }) => {
     if (room && message) {
       const timestamp = new Date().toLocaleTimeString();
-      io.to(room).emit('roomMessage', `[${timestamp}] ${message}`);
+      io.to(room).emit('roomMessage', `[${timestamp}] ${nickname}: ${message}`);
     }
   });
 
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
     for (const room in roomUsers) {
-      roomUsers[room] = roomUsers[room].filter((user) => user !== socket.id);
-      io.to(room).emit('updateUsers', roomUsers[room]);
+      roomUsers[room] = roomUsers[room].filter((user) => user.socketId !== socket.id);
+      io.to(room).emit('updateUsers', roomUsers[room].map((user) => user.nickname));
     }
   });
 });
@@ -55,4 +55,3 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
-

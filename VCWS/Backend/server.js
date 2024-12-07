@@ -10,6 +10,10 @@ app.use(cors({
   credentials: true,
 }));
 
+app.get('/', (req, res) => {
+  res.send('Welcome to the Virtual Co-Working Space Backend!');
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

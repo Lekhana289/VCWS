@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:3000'); // Connect to the backend server
+// WebSocket URL pointing to the Render backend
+const socket = io('https://vcws-backend.onrender.com');
 
 function App() {
   const [room, setRoom] = useState('');
+  const [nickname, setNickname] = useState('');
   const [message, setMessage] = useState('');
   const [chat, setChat] = useState([]);
-  const [points, setPoints] = useState(0); // Track user's points
-  const [leaderboard, setLeaderboard] = useState([]); // Track leaderboard
-  const [badges, setBadges] = useState([]); // Track user badges
+  const [points, setPoints] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [badges, setBadges] = useState([]);
+  const [users, setUsers] = useState([]);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -22,24 +25,31 @@ function App() {
     });
 
     socket.on('roomMessage', (data) => {
-      setChat((prevChat) => [...prevChat, data]);
+      if (typeof data === 'object') {
+        setChat((prevChat) => [
+          ...prevChat,
+          `${data.nickname || 'User'}: ${data.message || '[No message]'}`,
+        ]);
+      } else {
+        setChat((prevChat) => [...prevChat, data]);
+      }
     });
 
     socket.on('updatePoints', (newPoints) => {
-      setPoints(newPoints); // Update points in real time
+      setPoints(newPoints);
     });
 
     socket.on('leaderboard', (data) => {
-      setLeaderboard(data); // Update leaderboard
+      setLeaderboard(data);
     });
 
     socket.on('awardBadge', (badge) => {
-      console.log('Badge received:', badge); // Debug log
+      console.log('Badge received:', badge);
       setBadges((prevBadges) => [...prevBadges, badge]);
     });
 
-    socket.on('errorMessage', (errorMsg) => {
-      setError(errorMsg);
+    socket.on('updateUsers', (userList) => {
+      setUsers(userList);
     });
 
     return () => {
@@ -49,23 +59,24 @@ function App() {
       socket.off('updatePoints');
       socket.off('leaderboard');
       socket.off('awardBadge');
-      socket.off('errorMessage');
+      socket.off('updateUsers');
     };
   }, []);
 
   const joinRoom = () => {
-    if (room.trim() !== '') {
-      socket.emit('joinRoom', room);
+    if (room.trim() !== '' && nickname.trim() !== '') {
+      socket.emit('joinRoom', { room, nickname });
       setError(null);
     } else {
-      setError('Please enter a valid room name.');
+      setError('Please enter both a valid room name and a nickname.');
     }
   };
 
   const sendMessage = () => {
     if (message.trim() !== '') {
-      socket.emit('sendMessage', { room, message });
+      socket.emit('sendMessage', { room, nickname, message });
       setMessage('');
+      setError(null);
     } else {
       setError('Message cannot be empty.');
     }
@@ -80,6 +91,12 @@ function App() {
       <h1>Virtual Co-Working Space</h1>
       {error && <div style={{ color: 'red' }}>{error}</div>}
       <div>
+        <input
+          type="text"
+          placeholder="Enter your nickname"
+          value={nickname}
+          onChange={(e) => setNickname(e.target.value)}
+        />
         <input
           type="text"
           placeholder="Enter room name"
@@ -104,6 +121,14 @@ function App() {
         ))}
       </div>
       <div style={{ marginTop: '20px' }}>
+        <h2>Users in Room</h2>
+        <ul>
+          {users.map((user, index) => (
+            <li key={index}>{user}</li>
+          ))}
+        </ul>
+      </div>
+      <div style={{ marginTop: '20px' }}>
         <h2>Points</h2>
         <p>{points} points</p>
       </div>
@@ -112,7 +137,9 @@ function App() {
         <button onClick={fetchLeaderboard}>Refresh Leaderboard</button>
         <ul>
           {leaderboard.map((user, index) => (
-            <li key={index}>{user.id}: {user.points} points</li>
+            <li key={index}>
+              {user.nickname}: {user.points} points
+            </li>
           ))}
         </ul>
       </div>

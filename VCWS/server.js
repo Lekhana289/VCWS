@@ -4,40 +4,58 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 
 const app = express();
-app.use(cors()); // Allow cross-origin requests
+app.use(cors({
+  origin: 'https://vcws-frontend-qlli7jd8g-lekhanas-projects-0722a45e.vercel.app/', // Updated Frontend URL
+  methods: ['GET', 'POST'],
+  credentials: true,
+}));
+
+app.get('/', (req, res) => {
+  res.send('Welcome to the Virtual Co-Working Space Backend!');
+});
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000', // Frontend URL
+    origin: 'https://vcws-frontend-qlli7jd8g-lekhanas-projects-0722a45e.vercel.app/', // Updated Frontend URL
     methods: ['GET', 'POST'],
   },
 });
 
+const roomUsers = {}; // { room: [{ socketId, nickname }] }
+
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // Join a room
-  socket.on('joinRoom', (room) => {
-    socket.join(room);
-    console.log(`User ${socket.id} joined room: ${room}`);
-    io.to(room).emit('roomMessage', `User ${socket.id} has joined the room`);
+  socket.on('joinRoom', ({ room, nickname }) => {
+    if (room && nickname) {
+      socket.join(room);
+      if (!roomUsers[room]) roomUsers[room] = [];
+      roomUsers[room].push({ socketId: socket.id, nickname });
+
+      console.log(`User ${nickname} joined room: ${room}`);
+      io.to(room).emit('roomMessage', `${nickname} has joined the room ${room}`);
+      io.to(room).emit('updateUsers', roomUsers[room].map((user) => user.nickname));
+    }
   });
 
-  // Handle message sending
-  socket.on('sendMessage', ({ room, message }) => {
-    console.log(`Message from ${socket.id} in room ${room}: ${message}`);
-    io.to(room).emit('roomMessage', message);
+  socket.on('sendMessage', ({ room, nickname, message }) => {
+    if (room && message) {
+      const timestamp = new Date().toLocaleTimeString();
+      io.to(room).emit('roomMessage', `[${timestamp}] ${nickname}: ${message}`);
+    }
   });
 
-  // Handle disconnection
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
+    for (const room in roomUsers) {
+      roomUsers[room] = roomUsers[room].filter((user) => user.socketId !== socket.id);
+      io.to(room).emit('updateUsers', roomUsers[room].map((user) => user.nickname));
+    }
   });
 });
 
-// Start the server
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });

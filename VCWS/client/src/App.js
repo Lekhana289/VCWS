@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 // WebSocket URL pointing to the Render backend
-const socket = io('https://vcws-backend.onrender.com', {
-  transports: ['websocket', 'polling'], // Ensure fallback options for WebSocket connection
-});
+const socket = io('https://vcws-backend.onrender.com');
 
 function App() {
   const [room, setRoom] = useState('');
@@ -15,40 +14,27 @@ function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Connection success
     socket.on('connect', () => {
       console.log('Connected to WebSocket server with ID:', socket.id);
     });
 
-    // Disconnection event
     socket.on('disconnect', () => {
       console.log('Disconnected from WebSocket server');
     });
 
-    // Listen for messages in the room
     socket.on('roomMessage', (data) => {
       setChat((prevChat) => [...prevChat, data]);
     });
 
-    // Listen for updated user lists
     socket.on('updateUsers', (userList) => {
-      console.log('Updated Users:', userList);
       setUsers(userList);
     });
 
-    // Error listener for debugging
-    socket.on('connect_error', (err) => {
-      console.error('Connection Error:', err.message);
-      setError('Unable to connect to the server.');
-    });
-
     return () => {
-      // Cleanup listeners on unmount
       socket.off('connect');
       socket.off('disconnect');
       socket.off('roomMessage');
       socket.off('updateUsers');
-      socket.off('connect_error');
     };
   }, []);
 
@@ -72,52 +58,99 @@ function App() {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h1>Virtual Co-Working Space</h1>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <div>
-        <input
-          type="text"
-          placeholder="Enter your nickname"
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Enter room name"
-          value={room}
-          onChange={(e) => setRoom(e.target.value)}
-        />
-        <button onClick={joinRoom}>Join Room</button>
+    <div className="container mt-5">
+      <div className="text-center mb-4">
+        <h1 className="display-4">Virtual Co-Working Space</h1>
       </div>
-      <div style={{ marginTop: '20px' }}>
-        <input
-          type="text"
-          placeholder="Enter message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-        />
-        <button onClick={sendMessage}>Send Message</button>
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      {/* Room and Nickname Section */}
+      <div className="row mb-3">
+        <div className="col-md-5">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter your nickname"
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+          />
+        </div>
+        <div className="col-md-5">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter room name"
+            value={room}
+            onChange={(e) => setRoom(e.target.value)}
+          />
+        </div>
+        <div className="col-md-2">
+          <button className="btn btn-primary w-100" onClick={joinRoom}>
+            Join Room
+          </button>
+        </div>
       </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2>Messages</h2>
-        {chat.length > 0 ? (
-          chat.map((msg, index) => <p key={index}>{msg}</p>)
-        ) : (
-          <p>No messages yet</p>
-        )}
+
+      {/* Message Section */}
+      <div className="row mb-3">
+        <div className="col-md-10">
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter message"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+          />
+        </div>
+        <div className="col-md-2">
+          <button className="btn btn-success w-100" onClick={sendMessage}>
+            Send Message
+          </button>
+        </div>
       </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2>Users in Room</h2>
-        {users.length > 0 ? (
-          <ul>
-            {users.map((user, index) => (
-              <li key={index}>{user}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>No users in the room</p>
-        )}
+
+      {/* Chat Messages */}
+      <div className="row">
+        <div className="col-md-6">
+          <div className="card">
+            <div className="card-header bg-primary text-white">
+              <h5>Messages</h5>
+            </div>
+            <div className="card-body">
+              {chat.length > 0 ? (
+                chat.map((msg, index) => (
+                  <p key={index} className="mb-1">
+                    {msg}
+                  </p>
+                ))
+              ) : (
+                <p>No messages yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Users in Room */}
+        <div className="col-md-6">
+          <div className="card">
+            <div className="card-header bg-secondary text-white">
+              <h5>Users in Room</h5>
+            </div>
+            <div className="card-body">
+              {users.length > 0 ? (
+                <ul className="list-group">
+                  {users.map((user, index) => (
+                    <li key={index} className="list-group-item">
+                      {user}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No users in the room.</p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
